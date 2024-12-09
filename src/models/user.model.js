@@ -1,5 +1,5 @@
 import mongoose, {Schema} from "mongoose";
-import jwt from 'jwt';
+// import jwt from 'jwt';
 import bcrypt from 'bcrypt'
 
 const userSchema = new Schema({
