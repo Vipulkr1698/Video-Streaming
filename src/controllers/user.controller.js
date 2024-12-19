@@ -27,7 +27,8 @@ const loginUser = asyncHandler( async (req,res) => {
         throw new ApiError(404, "user with this email or username does not exists")
     }
 
-    if(!user.isPasswordCorrect(user.password)){
+    const isPasswordValid = await user.isPasswordCorrect(password)
+    if (!isPasswordValid) {
         throw new ApiError(401, "Incorrect Password")
     }
 
@@ -218,12 +219,58 @@ const refreshAccessToken  = asyncHandler ( async (req,res) => {
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid refresh token")
     }
-
-
-
-
-
-
 })
 
-export {registerUser,loginUser, logOutUser, refreshAccessToken}
+
+const changeCurrentPassword = asyncHandler(async (req,res) => {
+    const {oldPassword, newPassword} = req.body
+    const user = await User.findById(req.user?._id)
+    if (!user){
+        throw new ApiError(401, "user is not logged in")
+    }
+    const isPasswordValid = await user.isPasswordCorrect(oldPassword)
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Incorrect old Password")
+    }
+    user.password = newPassword
+    await user.save({ validateBeforeSave: false })
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"))
+})
+
+
+
+const getCurrentUser = asyncHandler (async (req,res) => {
+    const currentUser = await User.findById(req.user?._id);
+    if(!currentUser){
+        throw new ApiError(401, "No user is logged in")
+    }
+
+    return res.status(200).json(new ApiResponse(200, currentUser, "user fetched successfullt"));
+})
+
+
+
+const updateAccountDetails = asyncHandler ( async (req,res) => {
+    const {email, fullname} = req.body
+    if (!email || !fullname) {
+        return ApiError(404, "email or fullname is required")
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, {
+        $set: {
+            email,
+            fullname
+        }
+    },  {new: true}).select("-password");
+
+
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Account details updated successfully"))
+})
+
+
+
+
+export {registerUser,loginUser, logOutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails}
